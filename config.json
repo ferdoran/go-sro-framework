@@ -1,0 +1,34 @@
+{
+  "gw": {
+    "ip": "127.0.0.1",
+    "port": 15779,
+    "moduleId": "GatewayServer",
+    "secret": "YourGatewayServerSecret"
+  },
+  "agent": {
+    "ip": "127.0.0.1",
+    "port": 15882,
+    "moduleId": "AgentServer",
+    "secret": "YourAgentServerSecret"
+  },
+  "db": {
+    "account": {
+      "driver": "mysql",
+      "host": "127.0.0.1",
+      "port": "3306",
+      "user": "YOUR_SQL_USER",
+      "password": "YOUR_SQL_PASSWORD",
+      "database": "SRO_ACCOUNT",
+      "params": "?parseTime=true"
+    },
+    "shard": {
+      "driver": "mysql",
+      "host": "127.0.0.1",
+      "port": "3306",
+      "user": "YOUR_SQL_USER",
+      "password": "YOUR_SQL_PASSWORD",
+      "database": "SRO_SHARD",
+      "params": "?parseTime=true"
+    }
+  }
+}

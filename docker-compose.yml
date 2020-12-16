@@ -1,0 +1,13 @@
+version: "3"
+services:
+  mysql:
+    image: mysql:latest
+    restart: always
+    environment:
+      MYSQL_USER: sro
+      MYSQL_PASSWORD: 1234
+      MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+      MYSQL_DATABASE: SRO_ACCOUNT
+    ports:
+      - '3306:3306'
+      - '33060:33060'
