@@ -1,97 +1,122 @@
 package config
 
 import (
-	"encoding/json"
+	"fmt"
 	"github.com/sirupsen/logrus"
-	"net"
-	"os"
-	"strings"
+	"github.com/spf13/viper"
 )
 
-type Config struct {
-	GatewayServer GatewayServerGlobalConfig `json:"gw"`
-	DB            struct {
-		Account DBConfig `json:"account"`
-		Shard   DBConfig `json:"shard"`
-	} `json:"db"`
-	AgentServer AgentServerGlobalConfig `json:"agent"`
-}
+const (
+	DatabaseAccountDriver   = "db.account.driver"
+	DatabaseAccountHost     = "db.account.host"
+	DatabaseAccountPort     = "db.account.port"
+	DatabaseAccountUser     = "db.account.user"
+	DatabaseAccountPassword = "db.account.pw"
+	DatabaseAccountDatabase = "db.account.database"
+	DatabaseAccountParams   = "db.account.params"
 
-var GlobalConfig Config
+	DatabaseShardDriver   = "db.shard.driver"
+	DatabaseShardHost     = "db.shard.host"
+	DatabaseShardPort     = "db.shard.port"
+	DatabaseShardUser     = "db.shard.user"
+	DatabaseShardPassword = "db.shard.pw"
+	DatabaseShardDatabase = "db.shard.database"
+	DatabaseShardParams   = "db.shard.params"
 
-func LoadConfig(configFile string) {
-	logrus.Printf("loading config: %s\n", configFile)
-	file, err := os.Open(configFile)
+	Environment = "env"
 
-	if err != nil {
-		panic(err.Error())
+	LogLevel                = "log.level"
+	LogFile                 = "log.file"
+	LogFileUnhandledPackets = "log.unhandled_packets.file"
+)
+
+func Initialize() {
+	viper.AutomaticEnv()
+	viper.SetConfigName("config")
+	viper.AddConfigPath("/etc/go-sro-agent-server")
+	viper.AddConfigPath("$HOME")
+	viper.AddConfigPath(".")
+
+	setDefaultValues()
+	bindEnvAliases()
+
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			logrus.Info("config file not found - using env config or defaults")
+		} else {
+			logrus.Error(err)
+		}
 	}
 
-	defer file.Close()
-	decoder := json.NewDecoder(file)
-	cfg := Config{}
-	err = decoder.Decode(&cfg)
-
-	if err != nil {
-		panic(err.Error())
-	}
-
-	GlobalConfig = cfg
+	logrus.Info("config initialized")
 }
 
-// "user:password@tcp(127.0.0.1:3306)/hello"
-type DBConfig struct {
-	Driver   string `json:"driver"`
-	Host     string `json:"host"`
-	Port     string `json:"port"`
-	Database string `json:"database"`
-	User     string `json:"user"`
-	Password string `json:"password"`
-	Params   string `json:"params"`
+func bindEnvAliases() {
+	viper.BindEnv(Environment, "ENV")
+
+	viper.BindEnv(LogLevel, "LOG_LEVEL")
+	viper.BindEnv(LogFile, "LOG_FILE")
+	viper.BindEnv(LogFileUnhandledPackets, "LOG_UNHANDLED_PACKETS_FILE")
+
+	viper.BindEnv("db.account.driver", "DATABASE_ACCOUNT_DRIVER")
+	viper.BindEnv("db.account.host", "DB_ACCOUNT_HOST")
+	viper.BindEnv("db.account.port", "DB_ACCOUNT_PORT")
+	viper.BindEnv("db.account.user", "DB_ACCOUNT_USER")
+	viper.BindEnv("db.account.pw", "DB_ACCOUNT_PW")
+	viper.BindEnv("db.account.database", "DB_ACCOUNT_DATABASE")
+	viper.BindEnv("db.account.params", "DB_ACCOUNT_PARAMS")
+
+	viper.BindEnv("db.shard.driver", "DATABASE_SHARD_DRIVER")
+	viper.BindEnv("db.shard.host", "DB_SHARD_HOST")
+	viper.BindEnv("db.shard.port", "DB_SHARD_PORT")
+	viper.BindEnv("db.shard.user", "DB_SHARD_USER")
+	viper.BindEnv("db.shard.pw", "DB_SHARD_PW")
+	viper.BindEnv("db.shard.database", "DB_SHARD_DATABASE")
+	viper.BindEnv("db.shard.params", "DB_SHARD_PARAMS")
 }
+
+func setDefaultValues() {
+	viper.SetDefault(LogLevel, "info")
+	viper.SetDefault(LogFile, "app.log")
+	viper.SetDefault(LogFileUnhandledPackets, "unhandled_packets.log")
+
+	viper.SetDefault(Environment, "prod")
+
+	viper.SetDefault(DatabaseAccountDriver, "mysql")
+	viper.SetDefault(DatabaseAccountHost, "127.0.0.1")
+	viper.SetDefault(DatabaseAccountPort, 3306)
+	viper.SetDefault(DatabaseAccountUser, "sro")
+	viper.SetDefault(DatabaseAccountPassword, "1234")
+	viper.SetDefault(DatabaseAccountDatabase, "SRO_ACCOUNT")
+	viper.SetDefault(DatabaseAccountParams, "?parseTime=true")
+
+	viper.SetDefault(DatabaseShardDriver, "mysql")
+	viper.SetDefault(DatabaseShardHost, "127.0.0.1")
+	viper.SetDefault(DatabaseShardPort, 3306)
+	viper.SetDefault(DatabaseShardUser, "sro")
+	viper.SetDefault(DatabaseShardPassword, "1234")
+	viper.SetDefault(DatabaseShardDatabase, "SRO_SHARD")
+	viper.SetDefault(DatabaseShardParams, "?parseTime=true")
+}
+
+// "user:password@tcp(127.0.0.1:3306)/hello?params"
 
 func ConnStringAccount() string {
-	var sb strings.Builder
-	sb.WriteString(GlobalConfig.DB.Account.User)
-	sb.WriteString(":")
-	sb.WriteString(GlobalConfig.DB.Account.Password)
-	sb.WriteString("@tcp(")
-	sb.WriteString(GlobalConfig.DB.Account.Host)
-	sb.WriteString(":")
-	sb.WriteString(GlobalConfig.DB.Account.Port)
-	sb.WriteString(")/")
-	sb.WriteString(GlobalConfig.DB.Account.Database)
-	sb.WriteString(GlobalConfig.DB.Account.Params)
-	return sb.String()
+	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s%s",
+		viper.GetString(DatabaseAccountUser),
+		viper.GetString(DatabaseAccountPassword),
+		viper.GetString(DatabaseAccountHost),
+		viper.GetString(DatabaseAccountPort),
+		viper.GetString(DatabaseAccountDatabase),
+		viper.GetString(DatabaseAccountParams))
 }
 
 func ConnStringShard() string {
-	var sb strings.Builder
-	sb.WriteString(GlobalConfig.DB.Shard.User)
-	sb.WriteString(":")
-	sb.WriteString(GlobalConfig.DB.Shard.Password)
-	sb.WriteString("@tcp(")
-	sb.WriteString(GlobalConfig.DB.Shard.Host)
-	sb.WriteString(":")
-	sb.WriteString(GlobalConfig.DB.Shard.Port)
-	sb.WriteString(")/")
-	sb.WriteString(GlobalConfig.DB.Shard.Database)
-	sb.WriteString(GlobalConfig.DB.Shard.Params)
-	return sb.String()
-}
-
-type GatewayServerGlobalConfig struct {
-	Port     int    `json:"port"`
-	IP       net.IP `json:"ip"`
-	ModuleID string `json:"moduleId"`
-	Secret   string `json:"secret"`
-}
-
-type AgentServerGlobalConfig struct {
-	Port       int    `json:"port"`
-	IP         net.IP `json:"ip"`
-	ModuleID   string `json:"moduleId"`
-	Secret     string `json:"secret"`
-	DataPath   string `json:"dataPath"`   // Path to extracted Data.pk2
-	NavmeshGOB string `json:"navmeshGob"` // Path to prelinked navmesh data as GOB
+	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s%s",
+		viper.GetString(DatabaseShardUser),
+		viper.GetString(DatabaseShardPassword),
+		viper.GetString(DatabaseShardHost),
+		viper.GetString(DatabaseShardPort),
+		viper.GetString(DatabaseShardDatabase),
+		viper.GetString(DatabaseShardParams))
 }

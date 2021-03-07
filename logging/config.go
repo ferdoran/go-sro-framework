@@ -1,12 +1,13 @@
 package logging
 
 import (
+	"github.com/ferdoran/go-sro-framework/config"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"os"
 )
 
 const (
-	LogFile                 = "log.txt"
 	UnhandledPacketsLogfile = "unhandled_packets.txt"
 )
 
@@ -18,18 +19,26 @@ func Init() {
 		FullTimestamp:             true,
 		TimestampFormat:           "2006-01-01 15:04:05.000",
 	})
-	env := os.Getenv("SRO_ENV")
+	logLevel, err := log.ParseLevel(viper.GetString(config.LogLevel))
+
+	if err != nil {
+		log.Warnf("failed to parse log level: [%s]. setting to info", logLevel)
+		logLevel = log.InfoLevel
+	}
+
+	log.SetLevel(logLevel)
+
+	env := viper.GetString(config.Environment)
 	if env == "dev" {
-		log.Infoln("Detected SRO_ENV=dev. Setting log level to debug")
-		log.SetLevel(log.DebugLevel)
+		log.Infoln("detected ENV=dev. Setting output to stdout")
 		log.SetOutput(os.Stdout)
 	} else {
-		logFile, err := os.Create(LogFile)
+		logFile, err := os.Create(viper.GetString(config.LogFile))
 		if err != nil {
 			log.Error(err)
+		} else {
+			log.SetOutput(logFile)
 		}
-		log.SetLevel(log.InfoLevel)
-		log.SetOutput(logFile)
 	}
 }
 
