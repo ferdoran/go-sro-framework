@@ -1,7 +1,6 @@
 package server
 
 import (
-	"github.com/ferdoran/go-sro-framework/config"
 	"github.com/ferdoran/go-sro-framework/network"
 	log "github.com/sirupsen/logrus"
 )
@@ -18,14 +17,6 @@ func StartSampleServer() {
 			EDC:          true,
 			KeyExchange:  true,
 			KeyChallenge: false,
-		},
-		config.Config{
-			GatewayServer: config.GatewayServerGlobalConfig{},
-			DB: struct {
-				Account config.DBConfig `json:"account"`
-				Shard   config.DBConfig `json:"shard"`
-			}{},
-			AgentServer: config.AgentServerGlobalConfig{},
 		},
 	)
 	err := server.Start()

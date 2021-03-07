@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"github.com/spf13/viper"
 
 	"github.com/ferdoran/go-sro-framework/config"
 
@@ -9,7 +10,7 @@ import (
 )
 
 func OpenConnAccount() (db *sql.DB) {
-	db, errDb := sql.Open(config.GlobalConfig.DB.Account.Driver, config.ConnStringAccount())
+	db, errDb := sql.Open(viper.GetString(config.DatabaseAccountDriver), config.ConnStringAccount())
 	if errDb != nil {
 		panic(errDb.Error())
 	}
@@ -17,7 +18,7 @@ func OpenConnAccount() (db *sql.DB) {
 }
 
 func OpenConnShard() (db *sql.DB) {
-	db, errDb := sql.Open(config.GlobalConfig.DB.Shard.Driver, config.ConnStringShard())
+	db, errDb := sql.Open(viper.GetString(config.DatabaseShardDriver), config.ConnStringShard())
 	if errDb != nil {
 		panic(errDb.Error())
 	}
