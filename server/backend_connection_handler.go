@@ -1,7 +1,6 @@
 package server
 
 import (
-	"github.com/ferdoran/go-sro-framework/config"
 	"github.com/ferdoran/go-sro-framework/network/opcode"
 	log "github.com/sirupsen/logrus"
 )
@@ -13,13 +12,13 @@ type BackendConnectionData struct {
 
 type BackendConnectionHandler struct {
 	BackendConnected chan BackendConnectionData
-	Config           config.Config
+	backendModules   map[string]string
 }
 
-func NewBackendConnectionHandler(backendConnectedChannel chan BackendConnectionData, config config.Config) PacketHandler {
+func NewBackendConnectionHandler(backendConnectedChannel chan BackendConnectionData, backedModules map[string]string) PacketHandler {
 	handler := &BackendConnectionHandler{
 		BackendConnected: backendConnectedChannel,
-		Config:           config,
+		backendModules:   backedModules,
 	}
 	PacketManagerInstance.RegisterHandler(opcode.BackendAuthentication, handler)
 	return handler
@@ -36,22 +35,19 @@ func (h *BackendConnectionHandler) Handle(packet PacketChannelData) {
 		log.Error("Could not read secret")
 	}
 
-	switch serverModuleId {
-	case h.Config.AgentServer.ModuleID:
-		if secret != h.Config.AgentServer.Secret {
+	if moduleSecret, exists := h.backendModules[serverModuleId]; exists {
+		if moduleSecret == secret {
+			log.Infof("%s connected", serverModuleId)
+			h.BackendConnected <- BackendConnectionData{
+				Session:  packet.Session,
+				ModuleID: serverModuleId,
+			}
+		} else {
+			log.Warnf("wrong secret for %s: %s. closing connection", serverModuleId, secret)
 			packet.Session.Conn.Close()
-			log.Error("invalid agent server secret")
 		}
-	case h.Config.GatewayServer.ModuleID:
-		if secret != h.Config.GatewayServer.Secret {
-			packet.Session.Conn.Close()
-			log.Error("invalid gateway server secret")
-		}
-	}
-	log.Infof("%s connected\n", serverModuleId)
-
-	h.BackendConnected <- BackendConnectionData{
-		Session:  packet.Session,
-		ModuleID: serverModuleId,
+	} else {
+		log.Warnf("unknown backend module tried to connect: %s. closing connection", serverModuleId)
+		packet.Session.Conn.Close()
 	}
 }
