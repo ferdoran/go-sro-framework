@@ -8,7 +8,7 @@ import (
 func StartSampleServer() {
 
 	server := NewEngine(
-		[]byte{127, 0, 0, 1},
+		"127.0.0.1",
 		15779,
 		network.EncodingOptions{
 			None:         false,
