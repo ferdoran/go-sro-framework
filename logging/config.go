@@ -27,19 +27,6 @@ func Init() {
 	}
 
 	log.SetLevel(logLevel)
-
-	env := viper.GetString(config.Environment)
-	if env == "dev" {
-		log.Infoln("detected ENV=dev. Setting output to stdout")
-		log.SetOutput(os.Stdout)
-	} else {
-		logFile, err := os.Create(viper.GetString(config.LogFile))
-		if err != nil {
-			log.Error(err)
-		} else {
-			log.SetOutput(logFile)
-		}
-	}
 }
 
 func UnhandledPacketLogger() *log.Logger {

@@ -1,6 +1,7 @@
 package client
 
 import (
+	"fmt"
 	"github.com/ferdoran/go-sro-framework/network"
 	"github.com/ferdoran/go-sro-framework/security/blowfish"
 	log "github.com/sirupsen/logrus"
@@ -11,7 +12,8 @@ import (
 )
 
 type Client struct {
-	host                      net.TCPAddr
+	host                      string
+	port                      int
 	Conn                      net.Conn
 	Ctx                       SecurityContext
 	EncodingOptions           network.EncodingOptions
@@ -34,9 +36,10 @@ type Client struct {
 	ReconnectTimeoutInSeconds time.Duration
 }
 
-func NewClient(ip net.IP, port int, moduleId string) *Client {
+func NewClient(host string, port int, moduleId string) *Client {
 	c := Client{
-		host:                      net.TCPAddr{IP: ip, Port: port},
+		host:                      host,
+		port:                      port,
 		Conn:                      nil,
 		Ctx:                       SecurityContext{},
 		EncodingOptions:           network.EncodingOptions{},
@@ -64,7 +67,7 @@ func NewClient(ip net.IP, port int, moduleId string) *Client {
 }
 
 func (c *Client) Connect() {
-	conn, err := net.DialTCP("tcp4", nil, &c.host)
+	conn, err := net.Dial("tcp4", fmt.Sprintf("%s:%d", c.host, c.port))
 
 	if err != nil {
 		log.Debugf("failed to connect, reason: %s", err.Error())

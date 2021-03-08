@@ -3,7 +3,6 @@ package client
 import (
 	"github.com/ferdoran/go-sro-framework/network"
 	"github.com/ferdoran/go-sro-framework/network/opcode"
-	"net"
 )
 
 type BackendClient struct {
@@ -13,8 +12,8 @@ type BackendClient struct {
 	secret            string
 }
 
-func NewBackendClient(ip net.IP, port int, moduleId, secret string) *BackendClient {
-	client := NewClient(ip, port, moduleId)
+func NewBackendClient(host string, port int, moduleId, secret string) *BackendClient {
+	client := NewClient(host, port, moduleId)
 	backendClient := &BackendClient{
 		Client:    client,
 		Connected: false,

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"github.com/ferdoran/go-sro-framework/network"
 	log "github.com/sirupsen/logrus"
 	"net"
@@ -9,7 +10,7 @@ import (
 )
 
 type Server struct {
-	ip                net.IP
+	host              string
 	port              int
 	Sessions          map[string]*Session
 	options           network.EncodingOptions
@@ -20,11 +21,11 @@ type Server struct {
 	SessionCreated    chan string
 }
 
-func NewEngine(ip net.IP, port int, options network.EncodingOptions) Server {
+func NewEngine(host string, port int, options network.EncodingOptions) Server {
 	packetChannel := make(chan PacketChannelData)
 
 	return Server{
-		ip,
+		host,
 		port,
 		make(map[string]*Session),
 		options,
@@ -55,8 +56,8 @@ func (e *Server) Start() error {
 	NewModuleIdentifactionHandler()
 	NewKeepAliveHandler()
 
-	log.Infof("Started listening on %v:%v\n", e.ip, e.port)
-	listener, err := net.ListenTCP("tcp4", &net.TCPAddr{IP: e.ip, Port: e.port})
+	log.Infof("Started listening on %s:%d\n", e.host, e.port)
+	listener, err := net.Listen("tcp4", fmt.Sprintf("%s:%d", e.host, e.port))
 	if err != nil {
 		return err
 	}

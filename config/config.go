@@ -23,10 +23,7 @@ const (
 	DatabaseShardDatabase = "db.shard.database"
 	DatabaseShardParams   = "db.shard.params"
 
-	Environment = "env"
-
 	LogLevel                = "log.level"
-	LogFile                 = "log.file"
 	LogFileUnhandledPackets = "log.unhandled_packets.file"
 )
 
@@ -52,10 +49,8 @@ func Initialize() {
 }
 
 func bindEnvAliases() {
-	viper.BindEnv(Environment, "ENV")
 
 	viper.BindEnv(LogLevel, "LOG_LEVEL")
-	viper.BindEnv(LogFile, "LOG_FILE")
 	viper.BindEnv(LogFileUnhandledPackets, "LOG_UNHANDLED_PACKETS_FILE")
 
 	viper.BindEnv("db.account.driver", "DATABASE_ACCOUNT_DRIVER")
@@ -77,10 +72,7 @@ func bindEnvAliases() {
 
 func setDefaultValues() {
 	viper.SetDefault(LogLevel, "info")
-	viper.SetDefault(LogFile, "app.log")
 	viper.SetDefault(LogFileUnhandledPackets, "unhandled_packets.log")
-
-	viper.SetDefault(Environment, "prod")
 
 	viper.SetDefault(DatabaseAccountDriver, "mysql")
 	viper.SetDefault(DatabaseAccountHost, "127.0.0.1")
