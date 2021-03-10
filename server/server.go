@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/ferdoran/go-sro-framework/network"
 	log "github.com/sirupsen/logrus"
+	"io"
 	"net"
 	"os"
 	"os/signal"
@@ -18,7 +19,6 @@ type Server struct {
 	PacketChannel     chan PacketChannelData
 	BackendConnection chan BackendConnectionData
 	SessionClosed     chan *Session
-	SessionCreated    chan string
 }
 
 func NewEngine(host string, port int, options network.EncodingOptions) Server {
@@ -33,7 +33,6 @@ func NewEngine(host string, port int, options network.EncodingOptions) Server {
 		packetChannel,
 		make(chan BackendConnectionData, 1),
 		make(chan *Session, 8),
-		make(chan string, 8),
 	}
 }
 
@@ -63,12 +62,16 @@ func (e *Server) Start() error {
 	}
 
 	for {
+		log.Infof("waiting for connection to accept...")
+
 		conn, err := listener.Accept()
 
-		log.Infof("New connection from %v\n", conn.RemoteAddr())
 		if err != nil {
-			log.Fatal(err)
+			if err != io.EOF {
+				log.Fatal(err)
+			}
 		}
+		log.Infof("New connection from %v\n", conn.RemoteAddr())
 
 		session := NewSession(
 			conn,
@@ -80,6 +83,5 @@ func (e *Server) Start() error {
 		)
 		e.Sessions[session.ID] = session
 		go session.StartHandling()
-		e.SessionCreated <- session.ID
 	}
 }
