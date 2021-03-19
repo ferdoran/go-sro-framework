@@ -5,18 +5,22 @@ import (
 )
 
 type KeyExchangeCompletedHandler struct {
+	channel chan PacketChannelData
 }
 
-func NewKeyExchangeCompletedHandler() PacketHandler {
-	handler := KeyExchangeCompletedHandler{}
-	PacketManagerInstance.RegisterHandler(0x9000, handler)
-	return handler
+func InitKeyExchangeCompletedHandler() {
+	queue := PacketManagerInstance.GetQueue(0x9000)
+	handler := KeyExchangeCompletedHandler{channel: queue}
+	go handler.Handle()
 }
 
-func (h KeyExchangeCompletedHandler) Handle(packet PacketChannelData) {
-	if !packet.Session.Context.StartedHandshake && !packet.Session.Context.CompletedLocalSetup && !packet.Session.Context.CompletedRemoteSetup {
-		log.Error("Handshake still not setup completely")
+func (h *KeyExchangeCompletedHandler) Handle() {
+	for {
+		packet := <-h.channel
+		if !packet.Session.Context.StartedHandshake && !packet.Session.Context.CompletedLocalSetup && !packet.Session.Context.CompletedRemoteSetup {
+			log.Error("Handshake still not setup completely")
+		}
+		log.Debugln("Finished Handshake")
+		packet.Session.Context.FinishedHandshake = true
 	}
-	log.Debugln("Finished Handshake")
-	packet.Session.Context.FinishedHandshake = true
 }

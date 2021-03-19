@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"github.com/ferdoran/go-sro-framework/boot"
 	"github.com/ferdoran/go-sro-framework/network"
 	log "github.com/sirupsen/logrus"
 	"io"
@@ -24,6 +25,11 @@ type Server struct {
 func NewEngine(host string, port int, options network.EncodingOptions) Server {
 	packetChannel := make(chan PacketChannelData)
 
+	boot.RegisterComponent("packethandler", InitKeyExchangeHandler, 2)
+	boot.RegisterComponent("packethandler", InitKeyExchangeCompletedHandler, 2)
+	boot.RegisterComponent("packethandler", InitModuleIdentificationHandler, 2)
+	boot.RegisterComponent("packethandler", InitKeepAliveHandler, 2)
+
 	return Server{
 		host,
 		port,
@@ -34,6 +40,7 @@ func NewEngine(host string, port int, options network.EncodingOptions) Server {
 		make(chan BackendConnectionData, 1),
 		make(chan *Session, 8),
 	}
+
 }
 
 func (e *Server) Start() error {
@@ -49,11 +56,6 @@ func (e *Server) Start() error {
 		}
 		os.Exit(1)
 	}()
-
-	NewKeyExchangeHandler()
-	NewKeyExchangeCompletedHandler()
-	NewModuleIdentifactionHandler()
-	NewKeepAliveHandler()
 
 	log.Infof("Started listening on %s:%d\n", e.host, e.port)
 	listener, err := net.Listen("tcp4", fmt.Sprintf("%s:%d", e.host, e.port))

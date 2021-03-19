@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	"io"
 	"math/rand"
 	"net"
 	"sync"
@@ -73,8 +74,11 @@ func (s *Session) StartHandling() {
 	for {
 		packets, err := reader.ReadPackets()
 		if err != nil {
+			if err != io.EOF {
+				log.Errorln(err)
+			}
+
 			log.Debugf("Connection closed: %s\n", s.Conn.RemoteAddr().String())
-			log.Errorln(err)
 			s.ConnectionClosed <- s
 			break
 		}
@@ -97,6 +101,18 @@ func (s *Session) handleIncomingPacket(p network.Packet) {
 		return
 	}
 	// 3. Parse/ Handle packet
+	switch queue := PacketManagerInstance.queues[pDec.MessageID]; queue {
+	case nil:
+		log.Tracef("Unknown packet received: \n%v\n", pDec.String())
+		s.mutex.Lock()
+		s.ServerPacketChannel <- PacketChannelData{Session: s, Packet: pDec}
+		s.mutex.Unlock()
+	default:
+		queue <- PacketChannelData{
+			Session: s,
+			Packet:  pDec,
+		}
+	}
 	switch handler := PacketManagerInstance.Handlers[pDec.MessageID]; handler {
 	case nil:
 		log.Tracef("Unknown packet received: \n%v\n", pDec.String())
