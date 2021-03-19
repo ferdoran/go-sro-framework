@@ -21,7 +21,7 @@ func RegisterComponent(phase string, bootFunc func(), times int) {
 	bootConf := bootComponent{bootFunc, times}
 	upperPhase := strings.ToUpper(phase)
 
-	if !phaseExists(phase) {
+	if !phaseExists(upperPhase) {
 		logrus.Warnf("registering component for yet unknown phase %s", upperPhase)
 	}
 
