@@ -113,15 +113,6 @@ func (s *Session) handleIncomingPacket(p network.Packet) {
 			Packet:  pDec,
 		}
 	}
-	switch handler := PacketManagerInstance.Handlers[pDec.MessageID]; handler {
-	case nil:
-		log.Tracef("Unknown packet received: \n%v\n", pDec.String())
-		s.mutex.Lock()
-		s.ServerPacketChannel <- PacketChannelData{Session: s, Packet: pDec}
-		s.mutex.Unlock()
-	default:
-		handler.Handle(PacketChannelData{Session: s, Packet: pDec})
-	}
 }
 
 func (s *Session) validateEDC(p network.Packet) error {
