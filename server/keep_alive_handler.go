@@ -1,13 +1,15 @@
 package server
 
-type KeepAliveHandler struct{}
-
-func NewKeepAliveHandler() PacketHandler {
-	handler := KeepAliveHandler{}
-	PacketManagerInstance.RegisterHandler(0x2002, handler)
-	return handler
+type KeepAliveHandler struct {
+	channel chan PacketChannelData
 }
 
-func (h KeepAliveHandler) Handle(packet PacketChannelData) {
+func InitKeepAliveHandler() {
+	queue := PacketManagerInstance.GetQueue(0x2002)
+	handler := KeepAliveHandler{channel: queue}
+	go handler.Handle()
+}
+
+func (h KeepAliveHandler) Handle() {
 	// Do Nothing
 }
