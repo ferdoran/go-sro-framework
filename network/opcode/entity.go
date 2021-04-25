@@ -27,4 +27,7 @@ const (
 	EntityMovementRequest     uint16 = 0x7021
 	EntityMovementResponse    uint16 = 0xB021
 	MovementPositionUpdate    uint16 = 0xB023
+
+	EntitySelectRequest		  uint16 = 0x7045
+	EntitySelectResponse	  uint16 = 0xB045
 )
