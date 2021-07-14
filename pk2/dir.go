@@ -104,6 +104,9 @@ func (d *Directory) buildEntryMap() {
 	if d.FilesByName == nil {
 		d.FilesByName = make(map[string]PackFileEntry)
 	}
+	if d.Files == nil {
+		d.Files = make([]PackFileEntry, 0)
+	}
 	for _, entry := range d.Entries {
 		d.EntriesByName[entry.Name] = entry
 

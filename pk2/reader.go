@@ -141,7 +141,7 @@ func (r *Pk2Reader) readEntries(startPosition int64, directory *Directory) {
 	for _, v := range entries {
 		if v.Type == TypeDir && !strings.HasPrefix(v.Name, ".") {
 			// Expand it
-			newDir := Directory{Name: directory.Name + string(os.PathSeparator) + v.Name, Entries: make([]PackFileEntry, 0)}
+			newDir := Directory{Name: directory.Name + string(os.PathSeparator) + v.Name, Entries: make([]PackFileEntry, 0), Files: make([]PackFileEntry, 0)}
 			r.readEntries(int64(v.Position), &newDir)
 			directory.Directories = append(directory.Directories, newDir)
 		}
