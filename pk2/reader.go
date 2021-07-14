@@ -1,8 +1,10 @@
 package pk2
 
 import (
+	"fmt"
 	"github.com/ferdoran/go-sro-framework/security/blowfish"
 	"github.com/ferdoran/go-sro-framework/utils"
+	"github.com/pkg/errors"
 	"log"
 	"os"
 	"path/filepath"
@@ -19,6 +21,7 @@ type Pk2Reader struct {
 	cipher           *blowfish.Cipher
 	Directory        Directory
 	finishedIndexing bool
+	Files            map[string]PackFileEntry
 }
 
 func NewPk2Reader(filename string) Pk2Reader {
@@ -36,15 +39,26 @@ func NewPk2Reader(filename string) Pk2Reader {
 	return Pk2Reader{file: f, cipher: cipher, Directory: Directory{Name: fileName}}
 }
 
-func (r *Pk2Reader) ReadFile() {
+func (r *Pk2Reader) IndexArchive() {
 	header := r.readHeader()
 	r.verifyHeader(header)
 	log.Println("Read header successfully")
 	r.readEntries(HeaderSize, &r.Directory)
 	r.Directory.buildEntryMap()
 	r.Directory.buildDirectoryMap()
+	r.Files = r.Directory.AllFiles()
 	r.finishedIndexing = true
 	log.Println("Read entries successfully")
+}
+
+func (r *Pk2Reader) ReadFile(filename string) ([]byte, error) {
+	filename = strings.ReplaceAll(filename, "\\", string(os.PathSeparator))
+	filename = strings.ReplaceAll(filename, "/", string(os.PathSeparator))
+	if entry, ok := r.Files[filename]; ok {
+		return r.ReadEntry(&entry), nil
+	}
+
+	return nil, errors.New(fmt.Sprintf("file not found: %s", filename))
 }
 
 func (r *Pk2Reader) readHeader() PackHeader {
@@ -98,7 +112,6 @@ func (r *Pk2Reader) readEntries(startPosition int64, directory *Directory) {
 			Padding:    entryBuffer[offset+EntryPaddingOffset : offset+EntryPaddingOffset+2],
 		}
 		newEntry.Name = strings.ReplaceAll(newEntry.Name, "\\", string(os.PathSeparator))
-		newEntry.Name = strings.ReplaceAll(newEntry.Name, "/", string(os.PathSeparator))
 		entries = append(entries, newEntry)
 	}
 
@@ -108,6 +121,9 @@ func (r *Pk2Reader) readEntries(startPosition int64, directory *Directory) {
 
 	directory.Entries = append(directory.Entries, entries...)
 
+	if directory.Directories == nil {
+		directory.Directories = make([]Directory, 0)
+	}
 	for _, v := range entries {
 		if v.Type == TypeDir && !strings.HasPrefix(v.Name, ".") {
 			// Expand it

@@ -3,6 +3,7 @@ package pk2
 import (
 	"errors"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"log"
 	"os"
 	"strings"
@@ -13,17 +14,43 @@ type Directory struct {
 	EntriesByName     map[string]PackFileEntry
 	Directories       []Directory
 	DirectoriesByName map[string]Directory
+	Files             []PackFileEntry
+	FilesByName       map[string]PackFileEntry
 	Name              string
 }
 
 // Be careful, this might eat your hard disk space. Very IO intensive
 func (d *Directory) PrintFiles() {
-	for i := range d.Entries {
-		log.Printf("%s/%s", d.Name, d.Entries[i].Name)
+	for fileName := range d.FilesByName {
+		logrus.Printf("%s%s%s", d.Name, string(os.PathSeparator), fileName)
 	}
 
-	for i := range d.Directories {
-		d.Directories[i].PrintFiles()
+	for _, dir := range d.DirectoriesByName {
+		dir.PrintFiles()
+	}
+}
+
+func (d *Directory) AllFiles() map[string]PackFileEntry {
+	files := make(map[string]PackFileEntry)
+	for k, v := range d.FilesByName {
+		fullName := strings.Join([]string{d.Name, k}, string(os.PathSeparator))
+		files[fullName] = v
+	}
+
+	for _, dir := range d.DirectoriesByName {
+		dirFiles := dir.AllFiles()
+		for k, v := range dirFiles {
+			files[k] = v
+		}
+	}
+
+	return files
+}
+
+func (d *Directory) PrintDirs() {
+	logrus.Println(d.Name)
+	for _, dir := range d.Directories {
+		dir.PrintDirs()
 	}
 }
 
@@ -74,8 +101,17 @@ func (d *Directory) buildEntryMap() {
 	if d.EntriesByName == nil {
 		d.EntriesByName = make(map[string]PackFileEntry)
 	}
+	if d.FilesByName == nil {
+		d.FilesByName = make(map[string]PackFileEntry)
+	}
 	for _, entry := range d.Entries {
 		d.EntriesByName[entry.Name] = entry
+
+		switch entry.Type {
+		case TypeFile:
+			d.Files = append(d.Files, entry)
+			d.FilesByName[entry.Name] = entry
+		}
 	}
 }
 
@@ -92,8 +128,6 @@ func (d *Directory) buildDirectoryMap() {
 }
 
 func (d *Directory) getFile(reader *Pk2Reader, filename string) (data []byte, err error) {
-	filename = strings.ReplaceAll(filename, "\\", string(os.PathSeparator))
-	filename = strings.ReplaceAll(filename, "/", string(os.PathSeparator))
 	if !strings.HasPrefix(filename, d.Name) {
 		return nil, errors.New(fmt.Sprintf("file path [%s] does not contain directory [%s]", filename, d.Name))
 	}
@@ -101,11 +135,11 @@ func (d *Directory) getFile(reader *Pk2Reader, filename string) (data []byte, er
 	pathParts := strings.Split(filename, string(os.PathSeparator))
 	fileName := pathParts[len(pathParts)-1]
 
-	if entry, ok := d.EntriesByName[fileName]; ok {
+	if entry, ok := d.FilesByName[fileName]; ok {
 		data = reader.ReadEntry(&entry)
 	} else {
-		for dirName, dir := range d.DirectoriesByName {
-			if strings.HasPrefix(filename, dirName) {
+		for _, dir := range d.Directories {
+			if strings.HasPrefix(filename, dir.Name) {
 				return dir.getFile(reader, filename)
 			}
 		}
