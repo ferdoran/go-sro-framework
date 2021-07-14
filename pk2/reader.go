@@ -22,6 +22,8 @@ type Pk2Reader struct {
 	Directory        Directory
 	finishedIndexing bool
 	Files            map[string]PackFileEntry
+	FileCache        map[string][]byte
+	CachingEnabled   bool
 }
 
 func NewPk2Reader(filename string) Pk2Reader {
@@ -36,7 +38,7 @@ func NewPk2Reader(filename string) Pk2Reader {
 	fileName := filepath.Base(filename)
 	fileExt := filepath.Ext(fileName)
 	fileName = fileName[0 : len(fileName)-len(fileExt)]
-	return Pk2Reader{file: f, cipher: cipher, Directory: Directory{Name: fileName}}
+	return Pk2Reader{file: f, cipher: cipher, Directory: Directory{Name: fileName}, CachingEnabled: true, FileCache: make(map[string][]byte)}
 }
 
 func (r *Pk2Reader) IndexArchive() {
@@ -54,8 +56,16 @@ func (r *Pk2Reader) IndexArchive() {
 func (r *Pk2Reader) ReadFile(filename string) ([]byte, error) {
 	filename = strings.ReplaceAll(filename, "\\", string(os.PathSeparator))
 	filename = strings.ReplaceAll(filename, "/", string(os.PathSeparator))
+	if cacheData, ok := r.FileCache[filename]; r.CachingEnabled && ok {
+		return cacheData, nil
+	}
+
 	if entry, ok := r.Files[filename]; ok {
-		return r.ReadEntry(&entry), nil
+		data := r.ReadEntry(&entry)
+		if r.CachingEnabled {
+			r.FileCache[filename] = data
+		}
+		return data, nil
 	}
 
 	return nil, errors.New(fmt.Sprintf("file not found: %s", filename))
