@@ -71,6 +71,10 @@ func (r *Pk2Reader) ReadFile(filename string) ([]byte, error) {
 	return nil, errors.New(fmt.Sprintf("file not found: %s", filename))
 }
 
+func (r *Pk2Reader) ClearFileCache() {
+	r.FileCache = make(map[string][]byte)
+}
+
 func (r *Pk2Reader) readHeader() PackHeader {
 	headerBuffer := make([]byte, HeaderSize)
 	bytesRead, err := r.file.Read(headerBuffer)
