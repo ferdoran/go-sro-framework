@@ -97,6 +97,8 @@ func (r *Pk2Reader) readEntries(startPosition int64, directory *Directory) {
 			NextChain:  utils.ByteArrayToUint64(entryBuffer[offset+EntryNextChainOffset : offset+EntryPaddingOffset]),
 			Padding:    entryBuffer[offset+EntryPaddingOffset : offset+EntryPaddingOffset+2],
 		}
+		newEntry.Name = strings.ReplaceAll(newEntry.Name, "\\", string(os.PathSeparator))
+		newEntry.Name = strings.ReplaceAll(newEntry.Name, "/", string(os.PathSeparator))
 		entries = append(entries, newEntry)
 	}
 

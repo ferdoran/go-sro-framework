@@ -92,6 +92,8 @@ func (d *Directory) buildDirectoryMap() {
 }
 
 func (d *Directory) getFile(reader *Pk2Reader, filename string) (data []byte, err error) {
+	filename = strings.ReplaceAll(filename, "\\", string(os.PathSeparator))
+	filename = strings.ReplaceAll(filename, "/", string(os.PathSeparator))
 	if !strings.HasPrefix(filename, d.Name) {
 		return nil, errors.New(fmt.Sprintf("file path [%s] does not contain directory [%s]", filename, d.Name))
 	}
